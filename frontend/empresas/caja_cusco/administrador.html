@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Administrador de Clientes</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: 'Inter', sans-serif;
+    }
+    body {
+      margin: 0;
+      background: #f5f5f5;
+      color: #333;
+    }
+    header {
+      background: #b80000;
+      color: #fff;
+      padding: 1rem;
+      text-align: center;
+    }
+    .tabs {
+      display: flex;
+      background: #eee;
+    }
+    .tab {
+      flex: 1;
+      padding: 1rem;
+      text-align: center;
+      background: #ddd;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .tab.active {
+      background: #fff;
+      border-bottom: 3px solid #b80000;
+    }
+    .tab-content {
+      display: none;
+      padding: 2rem;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    th, td {
+      padding: 0.5rem;
+      border: 1px solid #ccc;
+      text-align: left;
+    }
+    thead {
+      background: #b80000;
+      color: white;
+    }
+    button {
+      padding: 4px 8px;
+      margin: 2px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .btn-verde { background: #28a745; color: white; }
+    .btn-rojo { background: #dc3545; color: white; }
+    input[type="text"], select {
+      padding: 0.4rem;
+      margin: 0.5rem 0.5rem 0 0;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Administrador de Clientes</h1>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="cambiarTab('admin')">Administrador</div>
+  <div class="tab" onclick="cambiarTab('sms')">SMS</div>
+</div>
+
+<!-- ADMINISTRADOR -->
+<div id="admin" class="tab-content active">
+  <h2>🗂 Administrador</h2>
+
+  <div>
+    <label>🔍 Acción:
+      <select id="filtroAccion" onchange="filtrarTabla()">
+        <option value="">Todos</option>
+        <option value="CONSULTA">CONSULTA</option>
+        <option value="Aceptó">ACEPTÓ</option>
+        <option value="No Aceptó">NO ACEPTÓ</option>
+        <option value="Oferta Enviada">OFERTA ENVIADA</option>
+      </select>
+    </label>
+    <label>🧾 Estado:
+      <select id="filtroEstado" onchange="filtrarTabla()">
+        <option value="">Todos</option>
+        <option value="Pagado">Pagado</option>
+        <option value="Pendiente">Pendiente</option>
+      </select>
+    </label>
+    <label>🏦 Entidad:
+      <input type="text" id="filtroEntidad" onkeyup="filtrarTabla()" placeholder="Caja Cusco..."/>
+    </label>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>DNI</th><th>Nombre</th><th>Entidad</th><th>Deuda</th><th>Monto Base</th>
+        <th>Cancelación</th><th>Acción</th><th>Ofertado</th>
+        <th>Estado</th><th>Fecha</th><th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody id="cuerpoTabla"></tbody>
+  </table>
+</div>
+
+<!-- SMS -->
+<div id="sms" class="tab-content">
+  <h2>📩 Historial de SMS</h2>
+
+  <label>🔍 Buscar por DNI:
+    <input type="text" id="buscarDNI" onkeyup="filtrarSMS()" placeholder="Ej. 12345678">
+  </label>
+
+  <table>
+    <thead>
+      <tr>
+        <th>DNI</th>
+        <th>Teléfono</th>
+        <th>Mensaje</th>
+        <th>Acción</th>
+        <th>Fecha</th>
+      </tr>
+    </thead>
+    <tbody id="tablaSMS"></tbody>
+  </table>
+</div>
+
+<script>
+  function cambiarTab(id) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.querySelector(`.tab[onclick*="${id}"]`).classList.add('active');
+    document.getElementById(id).classList.add('active');
+  }
+
+  let datos = [];
+  let historialSMS = [];
+
+  function cargarInteracciones() {
+    const empresa = window.location.pathname.split('/')[1] || 'default';
+    fetch(`/api/interacciones?empresa=${empresa}`)
+      .then(r => r.json())
+      .then(data => {
+        datos = filtrarConsultasUnicas(data.interacciones);
+        renderizarTabla();
+      });
+  }
+
+  function filtrarConsultasUnicas(interacciones) {
+    const vistos = new Set();
+    return interacciones.filter(i => {
+      const key = i.codcliente;
+      if (vistos.has(key)) return false;
+      if (i.accion === 'CONSULTA') {
+        const posteriores = interacciones.filter(x => x.codcliente === key && x.accion !== 'CONSULTA');
+        if (posteriores.length > 0) return false;
+      }
+      vistos.add(key);
+      return true;
+    });
+  }
+
+  function renderizarTabla() {
+    const cuerpo = document.getElementById('cuerpoTabla');
+    cuerpo.innerHTML = '';
+    datos.forEach(c => {
+      if (!pasaFiltros(c)) return;
+      const tr = document.createElement('tr');
+      const color = c.estado_pago === 'Pagado' ? '#d4edda' :
+                    c.estado_pago === 'Pendiente' ? '#f8d7da' : 'white';
+      tr.style.backgroundColor = color;
+
+      const cancelacion = c.accion === 'Aceptó'
+        ? (c.ofertado ? Number(c.ofertado) : (c.oferta_mostrada ? Number(c.oferta_mostrada) : null))
+        : null;
+
+      tr.innerHTML = `
+        <td>${c.codcliente}</td>
+        <td>${c.nom_cliente}</td>
+        <td>${c.entidad || '-'}</td>
+        <td>S/ ${Number(c.deuda || 0).toFixed(2)}</td>
+        <td>S/ ${Number(c.monto_base || 0).toFixed(2)}</td>
+        <td><span style="color: #111; font-weight: 700;">
+          ${cancelacion ? 'S/ ' + cancelacion.toFixed(2) : ''}
+        </span></td>
+        <td>${c.accion}</td>
+        <td>${c.ofertado ? 'S/ ' + Number(c.ofertado).toFixed(2) : '-'}</td>
+        <td>${c.estado_pago || '-'}</td>
+        <td>${c.fecha_hora}</td>
+        <td>${botones(c)}</td>
+      `;
+      cuerpo.appendChild(tr);
+    });
+  }
+
+  function pasaFiltros(c) {
+    const a = document.getElementById('filtroAccion').value;
+    const e = document.getElementById('filtroEstado').value;
+    const ent = document.getElementById('filtroEntidad').value.toLowerCase();
+    return (!a || c.accion === a) &&
+           (!e || c.estado_pago === e) &&
+           (!ent || (c.entidad || '').toLowerCase().includes(ent));
+  }
+
+  function filtrarTabla() {
+    renderizarTabla();
+  }
+
+  function botones(c) {
+    let acciones = '';
+
+    if (c.accion === 'Oferta Enviada') {
+      acciones += `
+        <button class="btn-verde" onclick="actualizar('${c.codcliente}', 'Aceptó', 'Pendiente')">Aceptar</button>
+        <button class="btn-rojo" onclick="actualizar('${c.codcliente}', 'No Aceptó', '')">No Aceptar</button>
+      `;
+    } else if (c.accion === 'Aceptó') {
+      acciones += `
+        <button class="btn-verde" onclick="actualizar('${c.codcliente}', 'Aceptó', 'Pagado')">Pagado</button>
+        <button class="btn-rojo" onclick="actualizar('${c.codcliente}', 'Aceptó', 'Pendiente')">Pendiente</button>
+      `;
+    }
+
+    acciones += `
+      <button onclick='enviarSMS(${JSON.stringify(c).replace(/'/g, "\\'")})'>Enviar SMS</button>
+    `;
+
+    return acciones;
+  }
+
+  function actualizar(dni, accion, estado_pago) {
+    const cliente = datos.find(c => c.codcliente === dni);
+    const empresa = window.location.pathname.split('/')[1] || 'default';
+    const monto_ofertado = cliente?.ofertado || null;
+
+    fetch('/api/actualizar_accion', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ dni, empresa, accion, estado_pago, monto_ofertado })
+    }).then(() => cargarInteracciones());
+  }
+
+  function enviarSMS(c) {
+    const ofertado = Number(c.ofertado || 0);
+    const base = Number(c.monto_base || 0);
+    const cancelacion = ofertado ? ofertado : Number(c.oferta_mostrada || 0);
+
+    let mensaje = 'Mensaje SMS genérico.';
+
+    if (c.accion === 'Aceptó' && c.estado_pago === 'Pendiente') {
+      mensaje = `Recuerde que tiene un pago pendiente de S/ ${cancelacion.toFixed(2)}.`;
+    } else if (c.accion === 'Aceptó' && c.estado_pago === 'Pagado') {
+      mensaje = `Gracias por su pago de S/ ${cancelacion.toFixed(2)}. Estamos gestionando su Carta de No Adeudo.`;
+    } else if (c.accion === 'Oferta Enviada') {
+      if (ofertado >= base) {
+        mensaje = `Su propuesta de S/ ${ofertado.toFixed(2)} fue aceptada. Puede realizar el pago.`;
+      } else {
+        mensaje = `Su oferta fue rechazada, pero le ofrecemos cancelar con S/ ${base.toFixed(2)}.`;
+      }
+    } else if (c.accion === 'CONSULTA') {
+      mensaje = `Tiene una oferta especial para cancelar su deuda. Ingrese ahora a la plataforma para verla.`;
+    }
+
+    alert(mensaje);
+
+    const empresa = window.location.pathname.split('/')[1] || 'default';
+
+    fetch('/api/enviar_sms', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        dni: c.codcliente,
+        empresa,
+        mensaje
+      })
+    })
+    .then(r => r.json())
+    .then(res => {
+      if (res.success) {
+        alert("✅ SMS registrado");
+        cargarHistorialSMS();
+      } else {
+        alert("❌ Error al registrar SMS");
+      }
+    });
+  }
+
+  function cargarHistorialSMS() {
+    const empresa = window.location.pathname.split('/')[1] || 'default';
+    fetch(`/api/sms?empresa=${empresa}`)
+      .then(r => r.json())
+      .then(data => {
+        historialSMS = data.sms || [];
+        renderizarSMS();
+      });
+  }
+
+  function renderizarSMS() {
+    const cuerpo = document.getElementById('tablaSMS');
+    const filtro = document.getElementById('buscarDNI').value.trim();
+    cuerpo.innerHTML = '';
+
+    historialSMS
+      .filter(s => !filtro || s.dni.includes(filtro))
+      .forEach(sms => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${sms.dni}</td>
+          <td>${sms.telefono || '-'}</td>
+          <td>${sms.mensaje}</td>
+          <td>${sms.accion}</td>
+          <td>${sms.fecha_hora}</td>
+        `;
+        cuerpo.appendChild(tr);
+      });
+  }
+
+  function filtrarSMS() {
+    renderizarSMS();
+  }
+
+  document.querySelector('.tab[onclick*="sms"]').addEventListener('click', cargarHistorialSMS);
+
+  cargarInteracciones();
+</script>
+
+</body>
+</html>

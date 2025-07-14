@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f8f9fa;
+      margin: 0;
+      padding: 1rem;
+    }
+    header {
+      background: #b80000;
+      color: white;
+      text-align: center;
+      padding: 1rem;
+      font-size: 1.5rem;
+    }
+    .resumen {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin: 2rem 0;
+      justify-content: center;
+    }
+    .card {
+      flex: 1 1 200px;
+      background: white;
+      padding: 1.5rem;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    .card h3 {
+      margin: 0;
+      font-size: 1rem;
+      color: #555;
+    }
+    .card p {
+      font-size: 1.5rem;
+      margin: 0.5rem 0 0;
+      font-weight: bold;
+      color: #222;
+    }
+    .graficos {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+      margin-top: 2rem;
+    }
+    canvas {
+      width: 100% !important;
+      height: 300px !important;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    📊 Dashboard General
+  </header>
+
+  <div class="resumen">
+    <div class="card">
+      <h3>Total de Consultas</h3>
+      <p id="totalConsultas">-</p>
+    </div>
+    <div class="card">
+      <h3>Aceptaron Oferta</h3>
+      <p id="aceptaron">-</p>
+    </div>
+    <div class="card">
+      <h3>Pagados</h3>
+      <p id="pagados">-</p>
+    </div>
+    <div class="card">
+      <h3>Valor Recaudado</h3>
+      <p id="recaudado">S/ -</p>
+    </div>
+    <div class="card">
+      <h3>Valor a Recaudar</h3>
+      <p id="porRecaudar">S/ -</p>
+    </div>
+  </div>
+
+  <div class="graficos">
+    <div>
+      <h3 style="text-align:center">Distribución por Acción</h3>
+      <canvas id="graficoAcciones"></canvas>
+    </div>
+    <div>
+      <h3 style="text-align:center">Estado de Pago</h3>
+      <canvas id="graficoEstado"></canvas>
+    </div>
+    <div>
+      <h3 style="text-align:center">Clientes por Entidad</h3>
+      <canvas id="graficoEntidades"></canvas>
+    </div>
+  </div>
+
+  <script>
+    let datos = [];
+
+    function cargarDatos() {
+      const empresa = window.location.pathname.split('/')[1] || 'default';
+      fetch(`/api/interacciones?empresa=${empresa}`)
+        .then(r => r.json())
+        .then(data => {
+          datos = data.interacciones || [];
+          procesarDatos();
+        });
+    }
+
+    function procesarDatos() {
+      const resumen = {
+        total: datos.length,
+        aceptaron: 0,
+        pagados: 0,
+        recaudado: 0,
+        porRecaudar: 0
+      };
+      const acciones = {};
+      const estados = { Pagado: 0, Pendiente: 0 };
+      const entidades = {};
+
+      datos.forEach(c => {
+        const acc = c.accion || 'Otro';
+        acciones[acc] = (acciones[acc] || 0) + 1;
+        if (acc === 'Aceptó') resumen.aceptaron++;
+
+        const estado = c.estado_pago;
+        if (estado === 'Pagado' || estado === 'Pendiente') {
+          estados[estado]++;
+          const monto = Number(c.ofertado || c.oferta_mostrada || 0);
+          if (estado === 'Pagado') resumen.recaudado += monto;
+          else resumen.porRecaudar += monto;
+          if (estado === 'Pagado') resumen.pagados++;
+        }
+
+        const ent = c.entidad || 'Sin Entidad';
+        entidades[ent] = (entidades[ent] || 0) + 1;
+      });
+
+      document.getElementById('totalConsultas').innerText = resumen.total;
+      document.getElementById('aceptaron').innerText = resumen.aceptaron;
+      document.getElementById('pagados').innerText = resumen.pagados;
+      document.getElementById('recaudado').innerText = 'S/ ' + resumen.recaudado.toFixed(2);
+      document.getElementById('porRecaudar').innerText = 'S/ ' + resumen.porRecaudar.toFixed(2);
+
+      crearTorta('graficoAcciones', acciones);
+      crearTorta('graficoEstado', estados);
+      crearBarras('graficoEntidades', entidades);
+    }
+
+    function crearTorta(id, data) {
+      const ctx = document.getElementById(id).getContext('2d');
+      new Chart(ctx, {
+        type: 'pie',
+        data: {
+          labels: Object.keys(data),
+          datasets: [{
+            data: Object.values(data),
+            backgroundColor: ['#007bff', '#ffc107', '#28a745', '#dc3545', '#6f42c1']
+          }]
+        }
+      });
+    }
+
+    function crearBarras(id, data) {
+      const ctx = document.getElementById(id).getContext('2d');
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: Object.keys(data),
+          datasets: [{
+            label: 'Clientes',
+            data: Object.values(data),
+            backgroundColor: '#17a2b8'
+          }]
+        },
+        options: {
+          scales: {
+            y: { beginAtZero: true }
+          }
+        }
+      });
+    }
+
+    cargarDatos();
+  </script>
+</body>
+</html>

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Administrador</title>
+  <link rel="stylesheet" href="styles.css"/>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; }
+    h1 { color: #b30000; }
+    .filtros { margin-bottom: 20px; }
+    .filtros select { margin-right: 10px; padding: 5px; }
+    table { width: 100%; border-collapse: collapse; background: white; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; font-size: 14px; }
+    th { background: #eee; }
+    .acciones button { margin: 2px; padding: 5px 10px; font-size: 12px; }
+    .verde { color: green; font-weight: bold; }
+    .rojo { color: red; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>Panel Administrativo</h1>
+
+  <div class="filtros">
+    <select id="filtro-accion">
+      <option value="">Todas las acciones</option>
+      <option value="CONSULTA">CONSULTA</option>
+      <option value="ACEPTÓ">ACEPTÓ</option>
+      <option value="NO ACEPTÓ">NO ACEPTÓ</option>
+      <option value="OFERTA ENVIADA">OFERTA ENVIADA</option>
+    </select>
+
+    <select id="filtro-estado">
+      <option value="">Todos los estados</option>
+      <option value="PAGADO">PAGADO</option>
+      <option value="PENDIENTE">PENDIENTE</option>
+    </select>
+
+    <select id="filtro-entidad">
+      <option value="">Todas las entidades</option>
+    </select>
+  </div>
+
+  <table id="tabla-clientes">
+    <thead>
+      <tr>
+        <th>DNI</th>
+        <th>Nombre</th>
+        <th>Acción</th>
+        <th>Entidad</th>
+        <th>Deuda Total</th>
+        <th>Oferta Mostrada</th>
+        <th>Monto Ofertado</th>
+        <th>Monto Cancelación</th>
+        <th>Estado de Pago</th>
+        <th>Fecha</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const empresa = location.pathname.split('/')[1];
+
+    function cargarDatos() {
+      fetch(`/api/interacciones?empresa=${empresa}`)
+        .then(res => res.json())
+        .then(data => {
+          const tbody = document.querySelector("#tabla-clientes tbody");
+          tbody.innerHTML = "";
+          const entidades = new Set();
+
+          data.forEach(cliente => {
+            entidades.add(cliente.entidad);
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+              <td>${cliente.dni}</td>
+              <td>${cliente.nombre}</td>
+              <td>${cliente.accion}</td>
+              <td>${cliente.entidad}</td>
+              <td>${cliente.deuda_total.toFixed(2)}</td>
+              <td>${cliente.oferta_mostrada}</td>
+              <td>${cliente.monto_ofertado}</td>
+              <td>${cliente.monto_cancelacion.toFixed(2)}</td>
+              <td class="${cliente.estado_pago === 'PAGADO' ? 'verde' : 'rojo'}">${cliente.estado_pago}</td>
+              <td>${cliente.fecha_hora}</td>
+              <td class="acciones">${generarBotones(cliente)}</td>
+            `;
+            tbody.appendChild(tr);
+          });
+
+          actualizarFiltroEntidades(entidades);
+        });
+    }
+
+    function generarBotones(cliente) {
+      const botones = [];
+      if (cliente.accion === "OFERTA ENVIADA") {
+        botones.push(`<button onclick="actualizar('${cliente.dni}', 'ACEPTÓ')">ACEPTAR</button>`);
+        botones.push(`<button onclick="actualizar('${cliente.dni}', 'NO ACEPTÓ')">NO ACEPTAR</button>`);
+      }
+      if (cliente.accion === "ACEPTÓ") {
+        botones.push(`<button onclick="actualizar('${cliente.dni}', '', 'PAGADO')">PAGADO</button>`);
+        botones.push(`<button onclick="actualizar('${cliente.dni}', '', 'PENDIENTE')">PENDIENTE</button>`);
+      }
+      return botones.join(" ");
+    }
+
+    function actualizar(dni, accion = '', estado = '') {
+      fetch("/api/actualizar_accion", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dni, empresa, accion, estado_pago: estado })
+      }).then(() => cargarDatos());
+    }
+
+    function actualizarFiltroEntidades(entidades) {
+      const select = document.getElementById("filtro-entidad");
+      select.innerHTML = '<option value="">Todas las entidades</option>';
+      entidades.forEach(e => {
+        const option = document.createElement("option");
+        option.value = e;
+        option.textContent = e;
+        select.appendChild(option);
+      });
+    }
+
+    document.querySelectorAll('.filtros select').forEach(select => {
+      select.addEventListener('change', () => {
+        const accion = document.getElementById('filtro-accion').value;
+        const estado = document.getElementById('filtro-estado').value;
+        const entidad = document.getElementById('filtro-entidad').value;
+
+        const filas = document.querySelectorAll('#tabla-clientes tbody tr');
+        filas.forEach(fila => {
+          const acc = fila.children[2].textContent;
+          const est = fila.children[8].textContent;
+          const ent = fila.children[3].textContent;
+
+          const visible = 
+            (!accion || acc === accion) &&
+            (!estado || est === estado) &&
+            (!entidad || ent === entidad);
+
+          fila.style.display = visible ? '' : 'none';
+        });
+      });
+    });
+
+    cargarDatos();
+  </script>
+</body>
+</html>

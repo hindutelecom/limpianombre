@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Consulta tu Deuda</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: 'Inter', sans-serif;
+    }
+    body {
+      margin: 0;
+      background: #ffffff;
+      color: #333;
+    }
+    .hero {
+      display: flex;
+      min-height: 100vh;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      flex-wrap: wrap;
+      background: #f9f9f9;
+      position: relative;
+    }
+    .logo {
+       position: absolute;
+       top: 1rem;
+       left: 1rem;
+       max-height: 200px; /* Aumenta el tamaño del logo */
+       height: auto;
+       width: auto;
+    }
+    .contenido {
+      flex: 1 1 400px;
+      max-width: 480px;
+      z-index: 1;
+    }
+    .contenido h1 {
+      font-size: 2rem;
+      color: #b80000;
+      margin-bottom: 0.5rem;
+    }
+    .contenido h2 {
+      font-size: 1.1rem;
+      font-weight: 400;
+      margin-bottom: 1.5rem;
+    }
+    .formulario {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 1rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    }
+    .formulario label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+    }
+    .formulario input[type="text"] {
+      width: 100%;
+      padding: 0.75rem;
+      margin-bottom: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 0.5rem;
+      font-size: 1rem;
+    }
+    .formulario button {
+      background-color: #b80000;
+      color: white;
+      border: none;
+      padding: 0.75rem;
+      border-radius: 0.5rem;
+      width: 100%;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .formulario button:hover {
+      background-color: #990000;
+    }
+    .visual {
+      flex: 1 1 400px;
+      text-align: center;
+    }
+    .visual img {
+      max-width: 100%;
+      border-radius: 1rem;
+      max-height: 600px;
+      object-fit: cover;
+    }
+    .info, .acciones, .propuesta, .mensaje {
+      margin-top: 1.5rem;
+      font-size: 0.95rem;
+    }
+    .acciones {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    .acciones button {
+      flex: 1;
+    }
+    .mensaje {
+      background: #f8f8f8;
+      border-left: 4px solid #b80000;
+      padding: 1rem;
+      border-radius: 0.5rem;
+    }
+    .volver {
+      margin-top: 1.5rem;
+      background-color: #666;
+      color: white;
+      border: none;
+      padding: 0.75rem;
+      width: 100%;
+      border-radius: 0.5rem;
+      font-size: 1rem;
+      font-weight: bold;
+    }
+    @media (max-width: 768px) {
+      .hero {
+        flex-direction: column;
+      }
+      .logo {
+        position: static;
+        margin-bottom: 1rem;
+      }
+      .visual {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="hero">
+    <img src="logo.png" class="logo" alt="Logo" />
+
+    <div class="contenido">
+      <h1 id="titulo-principal">Recupera tu independencia financiera</h1>
+      <h2 id="subtitulo-principal">Consulta tu deuda y obtén descuentos exclusivos para cancelarla hoy</h2>
+
+      <div class="formulario">
+        <div id="consulta-section">
+          <label for="dni">Ingresa tu DNI:</label>
+          <input type="text" id="dni" placeholder="Ej. 12345678" />
+          <button onclick="consultar()">CONSULTAR AHORA</button>
+        </div>
+
+        <div id="info-section" class="info" style="display: none;"></div>
+
+        <div class="acciones" id="botones-accion" style="display: none;">
+          <button onclick="aceptar()">ACEPTAR</button>
+          <button onclick="rechazar()">NO ACEPTAR</button>
+        </div>
+
+        <div class="propuesta" id="propuesta-section" style="display: none;">
+          <label for="oferta">¿Cuál es tu propuesta de pago? (S/)</label>
+          <input type="text" id="oferta" placeholder="Ej. 500" />
+          <button onclick="enviarPropuesta()">ENVIAR PROPUESTA</button>
+        </div>
+
+        <div id="mensaje-final" class="mensaje" style="display: none;"></div>
+
+        <button class="volver" id="btn-volver" onclick="window.location.reload()" style="display: none;">VOLVER AL INICIO</button>
+      </div>
+    </div>
+
+    <div class="visual" id="visual">
+      <img src="persona_celular.jpg" alt="Persona usando celular" />
+    </div>
+  </div>
+
+<script>
+  let datosCliente = null;
+  let empresa = window.location.pathname.split('/')[1] || 'default';
+
+  function consultar() {
+    const dni = document.getElementById('dni').value.trim();
+    if (!dni) return alert("Por favor ingrese su DNI");
+
+    fetch('/api/consulta', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dni, empresa })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.error) return alert("Cliente no encontrado");
+      datosCliente = data.cliente;
+      datosCliente.dni = dni;
+      document.getElementById('consulta-section').style.display = 'none';
+      document.getElementById('visual').style.display = 'none';
+      mostrarInfo();
+    });
+  }
+
+  function mostrarInfo() {
+    document.getElementById('titulo-principal').textContent = 'Recupera tu independencia financiera hoy mismo';
+    document.getElementById('subtitulo-principal').textContent = 'Tu oferta exclusiva el día de hoy:';
+
+    const deuda = Number(datosCliente.total_soles) || 0;
+    const montoOriginal = Number(datosCliente.monto_cancelacion) || 0;
+    const oferta = montoOriginal * 1.15;
+
+    datosCliente.oferta_mostrada = oferta;
+    datosCliente.monto_cancelacion = montoOriginal;
+
+    const info = document.getElementById('info-section');
+    info.innerHTML = `
+      <p><strong>DNI:</strong> ${datosCliente.dni}</p>
+      <p><strong>Nombre:</strong> ${datosCliente.nom_cliente}</p>
+      <p><strong>Entidad Financiera:</strong> ${datosCliente.empresa}</p>
+      <p><strong>Deuda Total:</strong> S/ ${deuda.toFixed(2)}</p>
+      <p><strong>Oferta de Cancelación:</strong> S/ ${oferta.toFixed(2)}</p>
+    `;
+    info.style.display = 'block';
+    document.getElementById('botones-accion').style.display = 'flex';
+  }
+
+  function aceptar() {
+    fetch(`/api/actualizar_accion`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        dni: datosCliente.dni,
+        empresa,
+        accion: 'Aceptó',
+        estado_pago: 'Pendiente',
+        monto_ofertado: datosCliente.oferta_mostrada
+      })
+    });
+    mostrarMensajePago(datosCliente.oferta_mostrada.toFixed(2));
+  }
+
+  function rechazar() {
+    document.getElementById('botones-accion').style.display = 'none';
+    document.getElementById('propuesta-section').style.display = 'block';
+  }
+
+  function enviarPropuesta() {
+    const propuesta = parseFloat(document.getElementById('oferta').value);
+    const montoOriginal = Number(datosCliente.monto_cancelacion) || 0;
+
+    if (isNaN(propuesta)) return alert("Ingrese un monto válido");
+
+    if (propuesta >= montoOriginal) {
+      fetch(`/api/actualizar_accion`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dni: datosCliente.dni,
+          empresa,
+          accion: 'Aceptó',
+          estado_pago: 'Pendiente',
+          monto_ofertado: propuesta
+        })
+      });
+      mostrarMensajePago(propuesta.toFixed(2));
+    } else {
+      fetch(`/api/actualizar_accion`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dni: datosCliente.dni,
+          empresa,
+          accion: 'Oferta Enviada',
+          estado_pago: '',
+          monto_ofertado: propuesta
+        })
+      });
+      mostrarMensajePropuesta();
+    }
+  }
+
+  function mostrarMensajePago(monto) {
+    ocultarTodo();
+    const mensaje = document.getElementById('mensaje-final');
+    mensaje.innerHTML = `
+      ✅ <strong>¡Gracias por aceptar la oferta!</strong><br><br>
+      💳 <strong>Datos para realizar el pago:</strong><br>
+      🏦 Banco: <strong>BCP</strong><br>
+      💼 Cuenta Corriente: <strong>191-9776387-0081</strong><br>
+      💰 Monto a pagar: <strong>S/ ${monto}</strong><br>
+      📱 WhatsApp: <strong>+51 959 973 442</strong><br>
+      ✉️ Email: <strong>gerencia@zangtel.com</strong><br><br>
+      ✔️ Una vez confirmado el pago, le enviaremos su <strong>Carta de NO ADEUDO</strong>.
+    `;
+    mensaje.style.display = 'block';
+    document.getElementById('btn-volver').style.display = 'block';
+  }
+
+  function mostrarMensajePropuesta() {
+    ocultarTodo();
+    const mensaje = document.getElementById('mensaje-final');
+    mensaje.innerHTML = `
+      ✅ <strong>Su propuesta fue enviada</strong><br>
+      Gracias. Será analizada y nos pondremos en contacto.
+    `;
+    mensaje.style.display = 'block';
+    document.getElementById('btn-volver').style.display = 'block';
+  }
+
+  function ocultarTodo() {
+    document.getElementById('info-section').style.display = 'none';
+    document.getElementById('botones-accion').style.display = 'none';
+    document.getElementById('propuesta-section').style.display = 'none';
+    document.getElementById('titulo-principal').style.display = 'none';
+    document.getElementById('subtitulo-principal').style.display = 'none';
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: limpia-nombre-app
+    env: python
+    buildCommand: ""
+    startCommand: "python backend/app.py"
+    envVars:
+      - key: FLASK_ENV
+        value: production
+    plan: free

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Login Admin</title>
+    <style>
+        body { font-family: Arial; background: #f4f4f4; display: flex; height: 100vh; align-items: center; justify-content: center; }
+        .login { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px gray; width: 300px; }
+        input { width: 100%; padding: 10px; margin: 5px 0; }
+        button { width: 100%; padding: 10px; background: #333; color: white; border: none; }
+    </style>
+</head>
+<body>
+
+<div class="login">
+    <h2>Login Admin</h2>
+    <input type="text" id="username" placeholder="Usuario">
+    <input type="password" id="password" placeholder="Contraseña">
+    <button onclick="login()">Ingresar</button>
+    <p id="mensaje" style="color:red;"></p>
+</div>
+
+<script>
+    async function login() {
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+
+        const res = await fetch('http://127.0.0.1:5000/login', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ username, password })
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+            window.location.href = 'admin.html';
+        } else {
+            document.getElementById('mensaje').innerText = data.error;
+        }
+    }
+</script>
+
+</body>
+</html>
