@@ -3,4 +3,4 @@ services:
     name: limpia-nombre
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn backend.app:app
+    startCommand: gunicorn app:app
