@@ -1,4 +1,3 @@
-Podrias actualizar mi app.py
 from flask import Flask, request, jsonify, send_from_directory
 import sqlite3
 import os
@@ -330,4 +329,3 @@ def redireccion_raiz():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
