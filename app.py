@@ -1,9 +1,10 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, session, redirect, url_for, render_template_string
 import sqlite3
 import os
 from datetime import datetime
 
 app = Flask(__name__)
+app.secret_key = 'clave_super_secreta'  # Necesario para sesiones
 DB_PATH = 'clientes.db'
 
 def conectar_db():
@@ -19,46 +20,100 @@ def normalizar_empresa(nombre_url):
     }
     return mapa_empresas.get(nombre_url, nombre_url)
 
+# --- LOGIN ---
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        usuario = request.form.get('usuario')
+        clave = request.form.get('clave')
+        if usuario == 'admin' and clave == 'zangano1234':
+            session['usuario'] = usuario
+            return redirect(url_for('panel_admin', empresa='caja_cusco'))
+        else:
+            return 'Credenciales incorrectas', 401
+
+    return render_template_string("""
+        <h2>Panel Admin</h2>
+        <form method="post">
+            <input type="text" name="usuario" placeholder="Usuario"><br>
+            <input type="password" name="clave" placeholder="Contraseña"><br>
+            <button type="submit">Ingresar</button>
+        </form>
+    """)
+
+@app.route('/logout')
+def logout():
+    session.pop('usuario', None)
+    return redirect(url_for('login'))
+
+# --- RUTAS CON PROTECCIÓN ---
+@app.route('/<empresa>/administrador.html')
+def panel_admin(empresa):
+    if 'usuario' not in session:
+        return redirect(url_for('login'))
+    ruta = os.path.join('frontend', 'empresas', empresa)
+    return send_from_directory(ruta, 'administrador.html')
+
+@app.route('/<empresa>/dashboard.html')
+def panel_dashboard(empresa):
+    if 'usuario' not in session:
+        return redirect(url_for('login'))
+    ruta = os.path.join('frontend', 'empresas', empresa)
+    return send_from_directory(ruta, 'dashboard.html')
+
+@app.route('/<empresa>/historial_sms.html')
+def panel_sms(empresa):
+    if 'usuario' not in session:
+        return redirect(url_for('login'))
+    ruta = os.path.join('frontend', 'empresas', empresa)
+    return send_from_directory(ruta, 'historial_sms.html')
+
+# --- PÚBLICO: Página index ---
+@app.route('/<empresa>/')
+def servir_index_empresa(empresa):
+    ruta = os.path.join('frontend', 'empresas', empresa)
+    archivo = os.path.join(ruta, 'index.html')
+    if os.path.exists(archivo):
+        return send_from_directory(ruta, 'index.html')
+    return "Empresa no encontrada", 404
+
+@app.route('/<empresa>/<path:filename>')
+def archivos_estaticos_empresa(empresa, filename):
+    ruta = os.path.join('frontend', 'empresas', empresa)
+    return send_from_directory(ruta, filename)
+
+# --- API JSON ---
 @app.route('/api/consulta', methods=['POST'])
 def api_consulta():
     try:
         data = request.get_json()
         dni = data.get('dni')
         empresa = data.get('empresa')
-
         if not dni or not empresa:
             return jsonify({'error': 'Faltan parámetros'}), 400
-
         empresa_normalizada = normalizar_empresa(empresa)
         conn = conectar_db()
         cursor = conn.cursor()
-
         cursor.execute("""
             SELECT empresa, nom_cliente, total_soles, monto_cancelacion, num1
             FROM clientes
             WHERE codcliente = ? AND empresa = ?
         """, (dni, empresa_normalizada))
         row = cursor.fetchone()
-
         if not row:
             conn.close()
             return jsonify({'error': 'Cliente no encontrado'})
-
         cliente = dict(row)
         cliente['monto_cancelacion'] = float(cliente.get('monto_cancelacion') or 0)
         cliente['total_soles'] = float(cliente.get('total_soles') or 0)
-
         cursor.execute("""
             INSERT INTO interacciones (codcliente, nom_cliente, empresa, accion, fecha_hora)
             VALUES (?, ?, ?, ?, ?)
         """, (dni, cliente['nom_cliente'], empresa_normalizada, 'CONSULTA',
               datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
-
         conn.commit()
         conn.close()
-
         return jsonify({'cliente': cliente})
-
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -71,27 +126,21 @@ def actualizar_accion():
         accion = data.get('accion')
         estado_pago = data.get('estado_pago')
         monto_ofertado = data.get('monto_ofertado', '')
-
         if not dni or not empresa or not accion:
             return jsonify({'error': 'Faltan parámetros'}), 400
-
         empresa_normalizada = normalizar_empresa(empresa)
         conn = conectar_db()
         cursor = conn.cursor()
-
         cursor.execute("""
             SELECT nom_cliente, empresa, total_soles, monto_cancelacion
             FROM clientes
             WHERE codcliente = ? AND empresa = ?
         """, (dni, empresa_normalizada))
         row = cursor.fetchone()
-
         if not row:
             conn.close()
             return jsonify({'error': 'Cliente no encontrado'}), 404
-
         cliente = dict(row)
-
         cursor.execute("""
             UPDATE clientes
             SET mejor_gestion = ?, tarea = ?, accion = ?, estado_pago = ?, monto_ofertado = ?
@@ -105,7 +154,6 @@ def actualizar_accion():
             dni,
             empresa_normalizada
         ))
-
         cursor.execute("""
             INSERT INTO interacciones (
                 codcliente, nom_cliente, empresa, accion, entidad, total_soles,
@@ -123,11 +171,9 @@ def actualizar_accion():
             estado_pago or '',
             datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         ))
-
         conn.commit()
         conn.close()
         return jsonify({'success': True})
-
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -136,10 +182,8 @@ def obtener_interacciones():
     try:
         empresa_url = request.args.get('empresa', '')
         empresa_normalizada = normalizar_empresa(empresa_url)
-
         conn = conectar_db()
         cursor = conn.cursor()
-
         cursor.execute("""
             WITH ultima_accion AS (
                 SELECT i.*
@@ -168,7 +212,6 @@ def obtener_interacciones():
             LEFT JOIN clientes c ON u.codcliente = c.codcliente AND u.empresa = c.empresa
             ORDER BY u.fecha_hora DESC
         """, (empresa_normalizada, empresa_normalizada))
-
         data = [dict(row) for row in cursor.fetchall()]
         conn.close()
         return jsonify({'interacciones': data})
@@ -182,28 +225,20 @@ def enviar_sms():
         dni = data.get('dni')
         empresa = data.get('empresa')
         mensaje = data.get('mensaje')
-
-        print("📨 Datos recibidos en /api/enviar_sms:", data)
-
         if not dni or not empresa or not mensaje:
             return jsonify({'error': 'Faltan parámetros'}), 400
-
         empresa_normalizada = normalizar_empresa(empresa)
         conn = conectar_db()
         cursor = conn.cursor()
-
         cursor.execute("""
             SELECT num1 FROM clientes
             WHERE codcliente = ? AND empresa = ?
         """, (dni, empresa_normalizada))
         row = cursor.fetchone()
-
         if not row or not row['num1']:
             conn.close()
             return jsonify({'error': 'Número de teléfono no encontrado'}), 404
-
         numero = row['num1']
-
         cursor.execute("""
             INSERT INTO sms_enviados (dni, empresa, mensaje, telefono, accion, fecha_hora)
             VALUES (?, ?, ?, ?, ?, ?)
@@ -215,14 +250,10 @@ def enviar_sms():
             'Simulado',
             datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         ))
-
         conn.commit()
         conn.close()
-
         return jsonify({'success': True, 'mensaje': 'SMS simulado enviado correctamente.'})
-
     except Exception as e:
-        print("🔥 Error en /api/enviar_sms:", e)
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/sms')
@@ -231,40 +262,21 @@ def obtener_sms():
         empresa = request.args.get('empresa')
         if not empresa:
             return jsonify({'error': 'Falta parámetro empresa'}), 400
-
         empresa_normalizada = normalizar_empresa(empresa)
-
         conn = conectar_db()
         cursor = conn.cursor()
-
         cursor.execute("""
             SELECT dni, telefono, mensaje, empresa, accion, fecha_hora
             FROM sms_enviados
             WHERE empresa = ?
             ORDER BY fecha_hora DESC
         """, (empresa_normalizada,))
-
         filas = cursor.fetchall()
         conn.close()
-
         sms = [dict(fila) for fila in filas]
         return jsonify({'sms': sms})
-
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
-@app.route('/<empresa>/')
-def servir_index_empresa(empresa):
-    ruta = os.path.join('frontend', 'empresas', empresa)
-    archivo = os.path.join(ruta, 'index.html')
-    if os.path.exists(archivo):
-        return send_from_directory(ruta, 'index.html')
-    return "Empresa no encontrada", 404
-
-@app.route('/<empresa>/<path:filename>')
-def archivos_estaticos_empresa(empresa, filename):
-    ruta = os.path.join('frontend', 'empresas', empresa)
-    return send_from_directory(ruta, filename)
 
 @app.route('/api/dashboard')
 def dashboard():
@@ -272,11 +284,9 @@ def dashboard():
         empresa = request.args.get('empresa')
         if not empresa:
             return jsonify({'error': 'Falta parámetro empresa'}), 400
-
         empresa_normalizada = normalizar_empresa(empresa)
         conn = conectar_db()
         cursor = conn.cursor()
-
         cursor.execute("""
             WITH ultima_accion AS (
                 SELECT i.*
@@ -313,20 +323,12 @@ def dashboard():
             FROM ultima_accion i
             LEFT JOIN clientes c ON i.codcliente = c.codcliente AND i.empresa = c.empresa
         """, (empresa_normalizada, empresa_normalizada))
-
         row = cursor.fetchone()
         conn.close()
         return jsonify(dict(row))
-
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
-from flask import redirect
 
 @app.route('/')
 def redireccion_raiz():
     return redirect('/caja_cusco/')
-
-
-if __name__ == '__main__':
-    app.run(debug=True)
