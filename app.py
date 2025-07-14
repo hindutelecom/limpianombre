@@ -321,5 +321,12 @@ def dashboard():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+from flask import redirect
+
+@app.route('/')
+def redireccion_raiz():
+    return redirect('/caja_cusco/')
+
+
 if __name__ == '__main__':
     app.run(debug=True)
