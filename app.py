@@ -255,7 +255,7 @@ def obtener_sms():
 
 @app.route('/<empresa>/')
 def servir_index_empresa(empresa):
-    ruta = os.path.join('..', 'frontend', 'empresas', empresa)
+    ruta = os.path.join('frontend', 'empresas', empresa)
     archivo = os.path.join(ruta, 'index.html')
     if os.path.exists(archivo):
         return send_from_directory(ruta, 'index.html')
@@ -263,11 +263,8 @@ def servir_index_empresa(empresa):
 
 @app.route('/<empresa>/<path:filename>')
 def archivos_estaticos_empresa(empresa, filename):
-    ruta = os.path.join('..', 'frontend', 'empresas', empresa)
+    ruta = os.path.join('frontend', 'empresas', empresa)
     return send_from_directory(ruta, filename)
-
-if __name__ == '__main__':
-    app.run(debug=True)
 
 @app.route('/api/dashboard')
 def dashboard():
@@ -280,7 +277,6 @@ def dashboard():
         conn = conectar_db()
         cursor = conn.cursor()
 
-        # Consulta por acción
         cursor.execute("""
             WITH ultima_accion AS (
                 SELECT i.*
@@ -324,3 +320,6 @@ def dashboard():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+if __name__ == '__main__':
+    app.run(debug=True)
