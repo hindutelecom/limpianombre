@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, redirect
 import sqlite3
 import os
 from datetime import datetime
@@ -6,10 +6,12 @@ from datetime import datetime
 app = Flask(__name__)
 DB_PATH = 'clientes.db'
 
+
 def conectar_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
+
 
 def normalizar_empresa(nombre_url):
     mapa_empresas = {
@@ -18,6 +20,7 @@ def normalizar_empresa(nombre_url):
         'empresa2': 'Empresa 2',
     }
     return mapa_empresas.get(nombre_url, nombre_url)
+
 
 @app.route('/api/consulta', methods=['POST'])
 def api_consulta():
@@ -61,6 +64,7 @@ def api_consulta():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 
 @app.route('/api/actualizar_accion', methods=['POST'])
 def actualizar_accion():
@@ -131,6 +135,7 @@ def actualizar_accion():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+
 @app.route('/api/interacciones', methods=['GET'])
 def obtener_interacciones():
     try:
@@ -174,6 +179,7 @@ def obtener_interacciones():
         return jsonify({'interacciones': data})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 
 @app.route('/api/enviar_sms', methods=['POST'])
 def enviar_sms():
@@ -225,6 +231,7 @@ def enviar_sms():
         print("🔥 Error en /api/enviar_sms:", e)
         return jsonify({'error': str(e)}), 500
 
+
 @app.route('/api/sms')
 def obtener_sms():
     try:
@@ -253,6 +260,13 @@ def obtener_sms():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+
+@app.route('/<empresa>/masivo_sms.html')
+def panel_masivo_sms(empresa):
+    ruta = os.path.join('frontend', 'empresas', empresa)
+    return send_from_directory(ruta, 'masivo_sms.html')
+
+
 @app.route('/<empresa>/')
 def servir_index_empresa(empresa):
     ruta = os.path.join('frontend', 'empresas', empresa)
@@ -261,10 +275,12 @@ def servir_index_empresa(empresa):
         return send_from_directory(ruta, 'index.html')
     return "Empresa no encontrada", 404
 
+
 @app.route('/<empresa>/<path:filename>')
 def archivos_estaticos_empresa(empresa, filename):
     ruta = os.path.join('frontend', 'empresas', empresa)
     return send_from_directory(ruta, filename)
+
 
 @app.route('/api/dashboard')
 def dashboard():
@@ -321,7 +337,6 @@ def dashboard():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-from flask import redirect
 
 @app.route('/')
 def redireccion_raiz():
