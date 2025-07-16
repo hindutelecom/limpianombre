@@ -53,7 +53,8 @@
     }
     canvas {
       width: 100% !important;
-      height: 300px !important;
+      height: auto !important;
+      aspect-ratio: 1 / 1;
     }
   </style>
 </head>
@@ -164,12 +165,21 @@
             data: Object.values(data),
             backgroundColor: ['#007bff', '#ffc107', '#28a745', '#dc3545', '#6f42c1']
           }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          aspectRatio: 1
         }
       });
     }
 
     function crearBarras(id, data) {
       const ctx = document.getElementById(id).getContext('2d');
+      const backgroundColors = Object.keys(data).map((_, i) => {
+        const colors = ['#17a2b8', '#ffc107', '#28a745', '#dc3545', '#6f42c1'];
+        return colors[i % colors.length];
+      });
       new Chart(ctx, {
         type: 'bar',
         data: {
@@ -177,10 +187,11 @@
           datasets: [{
             label: 'Clientes',
             data: Object.values(data),
-            backgroundColor: '#17a2b8'
+            backgroundColor: backgroundColors
           }]
         },
         options: {
+          responsive: true,
           scales: {
             y: { beginAtZero: true }
           }
