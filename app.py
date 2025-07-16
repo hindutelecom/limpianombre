@@ -189,8 +189,6 @@ def enviar_sms():
         empresa = data.get('empresa')
         mensaje = data.get('mensaje')
 
-        print("📨 Datos recibidos en /api/enviar_sms:", data)
-
         if not dni or not empresa or not mensaje:
             return jsonify({'error': 'Faltan parámetros'}), 400
 
@@ -228,7 +226,6 @@ def enviar_sms():
         return jsonify({'success': True, 'mensaje': 'SMS simulado enviado correctamente.'})
 
     except Exception as e:
-        print("🔥 Error en /api/enviar_sms:", e)
         return jsonify({'error': str(e)}), 500
 
 
@@ -279,6 +276,48 @@ def enviar_sms_masivo():
         conn.close()
 
         return jsonify({'success': True, 'enviados': enviados})
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/clientes_masivo')
+def clientes_masivo():
+    try:
+        empresa = request.args.get('empresa')
+        if not empresa:
+            return jsonify({'error': 'Falta parámetro empresa'}), 400
+
+        empresa_normalizada = normalizar_empresa(empresa)
+
+        conn = conectar_db()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT 
+                codcliente AS dni,
+                nom_cliente,
+                asignacion,
+                rango_mora,
+                total_soles,
+                monto_cancelacion AS cancelacion,
+                num1,
+                num2,
+                rango_deuda,
+                grupo,
+                rango_edad,
+                sexo,
+                estado_pago,
+                accion
+            FROM clientes
+            WHERE empresa = ?
+        """, (empresa_normalizada,))
+
+        filas = cursor.fetchall()
+        conn.close()
+
+        clientes = [dict(fila) for fila in filas]
+        return jsonify({'clientes': clientes})
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
