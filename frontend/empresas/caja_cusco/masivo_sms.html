@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Envío Masivo de SMS</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
   <style>
     body {
       font-family: 'Inter', sans-serif;
@@ -12,34 +12,28 @@
       margin: 0;
       padding: 2rem;
     }
-
     h1 {
       color: #c62828;
       margin-bottom: 1rem;
     }
-
     .filtros, .mensaje-box, .buscador-dni {
       display: flex;
       gap: 1rem;
       flex-wrap: wrap;
       margin-bottom: 1rem;
     }
-
     .filtros select, .buscador-dni input, .mensaje-box textarea, .mensaje-box select {
       padding: 0.5rem;
       font-size: 0.95rem;
     }
-
     .buscador-dni input {
       flex: 1;
       max-width: 300px;
     }
-
     textarea {
       width: 100%;
       min-height: 60px;
     }
-
     .vista-previa {
       background-color: #fff3f3;
       padding: 1rem;
@@ -47,28 +41,23 @@
       border-radius: 5px;
       margin-bottom: 1rem;
     }
-
     .tabla-container {
       overflow-x: auto;
     }
-
     table {
       width: 100%;
       border-collapse: collapse;
       background: white;
     }
-
     th, td {
       padding: 0.6rem;
       border: 1px solid #ddd;
       font-size: 0.9rem;
     }
-
     th {
       background-color: #e53935;
       color: white;
     }
-
     .boton-enviar {
       background-color: #c62828;
       color: white;
@@ -79,7 +68,6 @@
       cursor: pointer;
       margin-top: 0.5rem;
     }
-
     .contador {
       margin-top: 0.5rem;
       font-weight: bold;
@@ -108,7 +96,7 @@
   </div>
 
   <div class="buscador-dni">
-    <input type="text" id="buscarDNI" placeholder="Buscar por DNI">
+    <input type="text" id="buscarDNI" placeholder="Buscar por DNI" />
   </div>
 
   <div class="mensaje-box">
@@ -134,7 +122,7 @@
     <table>
       <thead>
         <tr>
-          <th><input type="checkbox" id="checkTodos"></th>
+          <th><input type="checkbox" id="checkTodos" /></th>
           <th>DNI</th>
           <th>Nombre</th>
           <th>Asignación</th>
@@ -247,21 +235,49 @@
     document.getElementById('btnEnviar').addEventListener('click', async () => {
       const tipo = document.getElementById('tipoMensaje').value;
       let texto = document.getElementById('textoVista').textContent;
-      let contador = 0;
+
+      if (!tipo) {
+        alert('Seleccione un tipo de mensaje');
+        return;
+      }
+
+      if (seleccionados.size === 0) {
+        alert('Seleccione al menos un cliente para enviar el SMS');
+        return;
+      }
+
+      // Construir lista de mensajes para enviar
+      const listaMensajes = [];
 
       for (const dni of seleccionados) {
         const c = clientes.find(x => x.dni === dni);
-        const mensaje = texto.replace('{nombre}', c.nom_cliente).replace('{Cancelación}', c.cancelacion);
-        const res = await fetch('/api/enviar_sms', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ dni, empresa, mensaje })
-        });
-        const r = await res.json();
-        if (r.success) contador++;
+        if (!c) continue;
+
+        const mensaje = texto
+          .replace('{nombre}', c.nom_cliente)
+          .replace('{Cancelación}', c.cancelacion);
+
+        listaMensajes.push({ dni, mensaje });
       }
 
-      document.getElementById('contadorEnvios').textContent = `${contador} SMS enviados`;
+      try {
+        const res = await fetch('/api/enviar_sms_masivo', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ empresa, mensajes: listaMensajes }),
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+          document.getElementById('contadorEnvios').textContent = `${data.enviados} SMS enviados`;
+          alert(`Envío masivo completado: ${data.enviados} mensajes enviados.`);
+        } else {
+          alert('Error al enviar mensajes: ' + (data.error || 'Error desconocido'));
+        }
+      } catch (error) {
+        alert('Error en la comunicación con el servidor: ' + error.message);
+      }
     });
 
     cargarClientes();

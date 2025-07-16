@@ -232,6 +232,58 @@ def enviar_sms():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/enviar_sms_masivo', methods=['POST'])
+def enviar_sms_masivo():
+    try:
+        data = request.get_json()
+        empresa = data.get('empresa')
+        mensajes = data.get('mensajes', [])
+
+        if not empresa or not mensajes:
+            return jsonify({'error': 'Faltan parámetros'}), 400
+
+        empresa_normalizada = normalizar_empresa(empresa)
+        conn = conectar_db()
+        cursor = conn.cursor()
+
+        enviados = 0
+        for item in mensajes:
+            dni = item.get('dni')
+            mensaje = item.get('mensaje')
+            if not dni or not mensaje:
+                continue
+
+            cursor.execute("""
+                SELECT num1 FROM clientes WHERE codcliente = ? AND empresa = ?
+            """, (dni, empresa_normalizada))
+            row = cursor.fetchone()
+            if not row or not row['num1']:
+                continue
+
+            numero = row['num1']
+
+            cursor.execute("""
+                INSERT INTO sms_enviados (dni, empresa, mensaje, telefono, accion, fecha_hora)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (
+                dni,
+                empresa_normalizada,
+                mensaje,
+                numero,
+                'Simulado',
+                datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            ))
+            enviados += 1
+
+        conn.commit()
+        conn.close()
+
+        return jsonify({'success': True, 'enviados': enviados})
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/sms')
 def obtener_sms():
     try:
@@ -341,48 +393,6 @@ def dashboard():
 @app.route('/')
 def redireccion_raiz():
     return redirect('/caja_cusco/')
-
-@app.route('/api/clientes_masivo')
-def clientes_masivo():
-    try:
-        empresa = request.args.get('empresa')
-        if not empresa:
-            return jsonify({'error': 'Falta parámetro empresa'}), 400
-
-        empresa_normalizada = normalizar_empresa(empresa)
-
-        conn = conectar_db()
-        cursor = conn.cursor()
-
-        cursor.execute("""
-            SELECT 
-                codcliente AS dni,
-                nom_cliente,
-                asignacion,
-                rango_mora,
-                total_soles,
-                monto_cancelacion AS cancelacion,
-                num1,
-                num2,
-                rango_deuda,
-                grupo,
-                rango_edad,
-                sexo,
-                estado_pago,
-                accion
-            FROM clientes
-            WHERE empresa = ?
-        """, (empresa_normalizada,))
-
-        filas = cursor.fetchall()
-        conn.close()
-
-        clientes = [dict(fila) for fila in filas]
-        return jsonify({'clientes': clientes})
-
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
 
 
 if __name__ == '__main__':
