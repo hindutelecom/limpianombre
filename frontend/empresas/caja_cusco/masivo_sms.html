@@ -2,230 +2,169 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Envío Masivo de SMS</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
   <style>
     body {
       font-family: 'Inter', sans-serif;
-      margin: 20px;
-      background-color: #f9f9f9;
-      color: #333;
+      margin: 0;
+      padding: 1rem;
+      background-color: #f8f8f8;
     }
-
-    .filtros, .buscar-dni, .panel-mensaje, .tabla-clientes {
-      background-color: #fff;
-      border: 1px solid #ddd;
-      border-radius: 10px;
-      padding: 16px;
-      margin-bottom: 20px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    h1 {
+      color: #b40000;
+      margin-bottom: 1rem;
     }
-
     .filtros {
       display: flex;
       flex-wrap: wrap;
-      gap: 12px;
-      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
     }
-
-    .filtros select, .buscar-dni input {
-      padding: 8px;
+    .filtros label {
+      display: flex;
+      flex-direction: column;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    .filtros input,
+    .filtros select {
+      padding: 0.5rem;
+      border-radius: 4px;
       border: 1px solid #ccc;
-      border-radius: 8px;
+      font-size: 0.9rem;
       min-width: 150px;
     }
-
-    .buscar-dni {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      max-width: 300px;
-    }
-
-    .buscar-dni input {
-      flex: 1;
-    }
-
-    .panel-mensaje select, .panel-mensaje textarea {
-      width: 100%;
-      padding: 10px;
-      margin-top: 8px;
-      margin-bottom: 12px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      font-size: 14px;
-    }
-
-    .btn {
-      background-color: #cc0000;
-      color: white;
-      border: none;
-      padding: 10px 18px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 600;
-    }
-
-    .btn:hover {
-      background-color: #990000;
-    }
-
-    .contador-envios {
-      margin-top: 10px;
-      font-weight: bold;
-      color: #cc0000;
-    }
-
-    .preview-mensaje {
-      font-style: italic;
-      background-color: #f1f1f1;
-      border-left: 4px solid #cc0000;
-      padding: 10px;
-      border-radius: 8px;
-      margin-bottom: 12px;
-    }
-
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 10px;
+      margin-top: 1rem;
     }
-
-    th, td {
-      border: 1px solid #ccc;
-      padding: 10px;
-      text-align: center;
-      font-size: 14px;
+    table th,
+    table td {
+      border: 1px solid #ddd;
+      padding: 0.5rem;
+      text-align: left;
+      font-size: 0.85rem;
     }
-
-    th {
-      background-color: #cc0000;
+    table th {
+      background-color: #f1f1f1;
+    }
+    .box-previa {
+      background-color: #fff3f3;
+      border-left: 4px solid #b40000;
+      padding: 1rem;
+      margin: 1rem 0;
+      font-size: 0.9rem;
+    }
+    .btn {
+      padding: 0.6rem 1.2rem;
+      background-color: #b40000;
       color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.9rem;
     }
-
-    tr:nth-child(even) {
-      background-color: #f9f9f9;
+    .btn:hover {
+      background-color: #910000;
     }
-
+    .contador {
+      margin-top: 1rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
   </style>
 </head>
 <body>
-
-  <h2>📨 Envío Masivo de SMS</h2>
+  <h1>Envío Masivo de SMS</h1>
+  <div class="filtros">
+    <label>
+      Asignación
+      <select id="filtro-asignacion">
+        <option value="">-- Seleccionar --</option>
+        <option value="INTERBANK">INTERBANK</option>
+        <option value="BBVA">BBVA</option>
+        <option value="SCOTIABANK">SCOTIABANK</option>
+      </select>
+    </label>
+    <label>
+      Rango Deuda
+      <select id="filtro-deuda">
+        <option value="">-- Seleccionar --</option>
+        <option value="0-500">0 - 500</option>
+        <option value="501-1000">501 - 1000</option>
+        <option value="1001-5000">1001 - 5000</option>
+      </select>
+    </label>
+    <label>
+      Acción
+      <select id="filtro-accion">
+        <option value="">-- Todas --</option>
+        <option value="CONSULTA">CONSULTA</option>
+        <option value="Aceptó">ACEPTÓ</option>
+        <option value="Oferta Enviada">OFERTA ENVIADA</option>
+        <option value="No Aceptó">NO ACEPTÓ</option>
+      </select>
+    </label>
+  </div>
 
   <div class="filtros">
-    <select id="filtro-asignacion">
-      <option value="">Asignación</option>
-      <option value="INTERBANK">INTERBANK</option>
-      <option value="BBVA">BBVA</option>
-    </select>
-
-    <select id="filtro-rango-deuda">
-      <option value="">Rango Deuda</option>
-      <option value="0-1000">0 - 1,000</option>
-      <option value="1001-5000">1,001 - 5,000</option>
-    </select>
-
-    <select id="filtro-sexo">
-      <option value="">Sexo</option>
-      <option value="M">Masculino</option>
-      <option value="F">Femenino</option>
-    </select>
-
-    <select id="filtro-acciones">
-      <option value="">Acciones</option>
-      <option value="Pendiente">Pendiente</option>
-      <option value="Pagado">Pagado</option>
-    </select>
+    <label>
+      Buscar por DNI
+      <input type="text" id="buscar-dni" placeholder="Ingrese DNI..." />
+    </label>
   </div>
 
-  <div class="buscar-dni">
-    <input type="text" placeholder="Buscar por DNI" id="buscar-dni" />
-    <button class="btn" onclick="buscarDNI()">Buscar</button>
+  <div class="filtros">
+    <label>
+      Tipo de mensaje
+      <select id="tipo-mensaje">
+        <option value="">-- Seleccionar --</option>
+        <option value="link">Enlace de consulta</option>
+        <option value="propuesta">Propuesta aceptada</option>
+        <option value="recordatorio">Recordatorio de pago</option>
+        <option value="personalizado">Mensaje personalizado</option>
+      </select>
+    </label>
+    <label>
+      Mensaje personalizado
+      <input type="text" id="mensaje-personalizado" placeholder="Escriba el mensaje..." />
+    </label>
   </div>
 
-  <div class="panel-mensaje">
-    <label for="tipo-mensaje"><strong>Tipo de Mensaje</strong></label>
-    <select id="tipo-mensaje" onchange="actualizarPreview()">
-      <option value="">Seleccione...</option>
-      <option value="link">🔗 Enviar Link</option>
-      <option value="aceptado">✅ Propuesta Aceptada</option>
-      <option value="recordatorio">⏰ Recordatorio de Pago</option>
-      <option value="personalizado">✍️ Mensaje Personalizado</option>
-    </select>
-
-    <label for="mensaje-personalizado"><strong>Mensaje Personalizado</strong></label>
-    <textarea id="mensaje-personalizado" rows="3" placeholder="Escribe aquí si seleccionaste personalizado" oninput="actualizarPreview()"></textarea>
-
-    <div class="preview-mensaje" id="preview-mensaje">
-      Vista previa del mensaje...
-    </div>
-
-    <button class="btn" onclick="enviarMensajes()">Enviar Mensaje</button>
-
-    <div class="contador-envios">
-      SMS enviados: <span id="contador">0</span>
-    </div>
+  <div class="box-previa" id="preview-mensaje">
+    Vista previa del mensaje aparecerá aquí...
   </div>
 
-  <div class="tabla-clientes">
-    <table>
-      <thead>
-        <tr>
-          <th>Seleccionar</th>
-          <th>DNI</th>
-          <th>Nombre</th>
-          <th>Asignación</th>
-          <th>Deuda Total</th>
-          <th>Cancelación</th>
-          <th>Teléfono</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody id="tabla-clientes">
-        <!-- Aquí van los datos cargados dinámicamente -->
-      </tbody>
-    </table>
+  <button class="btn" id="btn-enviar">Enviar Mensaje</button>
+
+  <div class="contador" id="contador-envios">
+    Total de SMS enviados: 0
   </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th><input type="checkbox" id="seleccionar-todos" /></th>
+        <th>DNI</th>
+        <th>Nombre</th>
+        <th>Asignación</th>
+        <th>Teléfono</th>
+        <th>Deuda</th>
+        <th>Cancelación</th>
+        <th>Acción</th>
+      </tr>
+    </thead>
+    <tbody id="tabla-clientes">
+      <!-- Datos se cargarán dinámicamente -->
+    </tbody>
+  </table>
 
   <script>
-    function actualizarPreview() {
-      const tipo = document.getElementById('tipo-mensaje').value;
-      const personalizado = document.getElementById('mensaje-personalizado').value;
-      let preview = '';
-
-      switch (tipo) {
-        case 'link':
-          preview = '{nombre}, ingrese al siguiente link para ver su propuesta: https://limpianombre.com';
-          break;
-        case 'aceptado':
-          preview = '{nombre}, su propuesta ha sido aceptada. El monto a pagar es {Cancelación}.';
-          break;
-        case 'recordatorio':
-          preview = '{nombre}, recuerde hacer el pago de {Cancelación} para obtener su carta de No Adeudo.';
-          break;
-        case 'personalizado':
-          preview = personalizado || '(Escriba su mensaje personalizado)';
-          break;
-        default:
-          preview = 'Seleccione un tipo de mensaje para ver la vista previa.';
-      }
-
-      document.getElementById('preview-mensaje').innerText = preview;
-    }
-
-    function buscarDNI() {
-      const dni = document.getElementById('buscar-dni').value;
-      alert("Buscar por DNI: " + dni);
-      // Aquí iría la lógica real de filtrado
-    }
-
-    function enviarMensajes() {
-      alert("Envío simulado. Aquí iría la lógica real.");
-      const contador = document.getElementById('contador');
-      contador.innerText = parseInt(contador.innerText) + 1;
-    }
+    console.log("✅ JavaScript sí se está ejecutando");
+    // Aquí irá el fetch y lógica JS luego
   </script>
 </body>
 </html>
