@@ -22,16 +22,16 @@
       justify-content: center;
       padding: 2rem;
       flex-wrap: wrap;
-      background: linear-gradient(to bottom, #ffffff, #fbe9e7);
+      background: #f9f9f9;
       position: relative;
     }
     .logo {
-      position: absolute;
-      top: 1rem;
-      left: 1rem;
-      max-height: 200px;
-      height: auto;
-      width: auto;
+       position: absolute;
+       top: 1rem;
+       left: 1rem;
+       max-height: 200px;
+       height: auto;
+       width: auto;
     }
     .contenido {
       flex: 1 1 400px;
@@ -84,7 +84,6 @@
     .visual {
       flex: 1 1 400px;
       text-align: center;
-      margin-top: 2rem;
     }
     .visual img {
       max-width: 100%;
@@ -125,18 +124,23 @@
     @media (max-width: 768px) {
       .hero {
         flex-direction: column;
+        padding: 1rem;
+        align-items: center;
       }
       .logo {
         position: static;
         margin-bottom: 1rem;
+        max-width: 180px;
       }
       .visual {
-        order: -1;
         display: block;
+        order: 2;
+        margin-bottom: 1rem;
       }
-      .visual img {
-        max-height: 300px;
-        border-radius: 0;
+      .contenido {
+        order: 3;
+        width: 100%;
+        max-width: 480px;
       }
     }
   </style>
@@ -144,6 +148,10 @@
 <body>
   <div class="hero">
     <img src="logo.png" class="logo" alt="Logo" />
+
+    <div class="visual" id="visual">
+      <img src="persona_celular.jpg" alt="Persona usando celular" />
+    </div>
 
     <div class="contenido">
       <h1 id="titulo-principal">Recupera tu independencia financiera</h1>
@@ -173,10 +181,6 @@
 
         <button class="volver" id="btn-volver" onclick="window.location.reload()" style="display: none;">VOLVER AL INICIO</button>
       </div>
-    </div>
-
-    <div class="visual" id="visual">
-      <img src="persona_celular.jpg" alt="Persona usando celular" />
     </div>
   </div>
 
