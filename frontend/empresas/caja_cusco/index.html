@@ -156,7 +156,6 @@
       }
     }
 
-    /* Botón flotante WhatsApp */
     .whatsapp-float {
       position: fixed;
       bottom: 20px;
@@ -216,8 +215,8 @@
     </div>
   </div>
 
-  <!-- Botón flotante de WhatsApp -->
-  <a href="https://wa.me/51959973442?text=Hola%2C%20quisiera%20consultar%20mi%20deuda" class="whatsapp-float" target="_blank" title="Contáctanos por WhatsApp">
+  <!-- Botón flotante de WhatsApp (oculto al inicio) -->
+  <a id="btn-whatsapp" href="https://wa.me/51959973442?text=Hola%2C%20quisiera%20consultar%20mi%20deuda" class="whatsapp-float" target="_blank" title="Contáctanos por WhatsApp" style="display: none;">
     <img src="https://cdn-icons-png.flaticon.com/512/220/220236.png" alt="WhatsApp" />
   </a>
 
@@ -246,6 +245,7 @@
   }
 
   function mostrarInfo() {
+    document.getElementById('btn-whatsapp').style.display = 'block';
     document.getElementById('titulo-principal').textContent = 'Recupera tu independencia financiera hoy mismo';
     document.getElementById('subtitulo-principal').textContent = 'Tu oferta exclusiva el día de hoy:';
 
@@ -324,6 +324,7 @@
   }
 
   function mostrarMensajePago(monto) {
+    document.getElementById('btn-whatsapp').style.display = 'block';
     ocultarTodo();
     const mensaje = document.getElementById('mensaje-final');
     mensaje.innerHTML = `
@@ -341,6 +342,7 @@
   }
 
   function mostrarMensajePropuesta() {
+    document.getElementById('btn-whatsapp').style.display = 'block';
     ocultarTodo();
     const mensaje = document.getElementById('mensaje-final');
     mensaje.innerHTML = `
