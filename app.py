@@ -342,6 +342,48 @@ def dashboard():
 def redireccion_raiz():
     return redirect('/caja_cusco/')
 
+@app.route('/api/clientes_masivo')
+def clientes_masivo():
+    try:
+        empresa = request.args.get('empresa')
+        if not empresa:
+            return jsonify({'error': 'Falta parámetro empresa'}), 400
+
+        empresa_normalizada = normalizar_empresa(empresa)
+
+        conn = conectar_db()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT 
+                codcliente AS dni,
+                nom_cliente,
+                asignacion,
+                rango_mora,
+                total_soles,
+                monto_cancelacion AS cancelacion,
+                num1,
+                num2,
+                rango_deuda,
+                grupo,
+                rango_edad,
+                sexo,
+                estado_pago,
+                accion
+            FROM clientes
+            WHERE empresa = ?
+        """, (empresa_normalizada,))
+
+        filas = cursor.fetchall()
+        conn.close()
+
+        clientes = [dict(fila) for fila in filas]
+        return jsonify({'clientes': clientes})
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)

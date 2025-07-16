@@ -1,170 +1,270 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Envío Masivo de SMS</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <style>
     body {
       font-family: 'Inter', sans-serif;
+      background-color: #f7f7f7;
       margin: 0;
-      padding: 1rem;
-      background-color: #f8f8f8;
+      padding: 2rem;
     }
+
     h1 {
-      color: #b40000;
+      color: #c62828;
       margin-bottom: 1rem;
     }
-    .filtros {
+
+    .filtros, .mensaje-box, .buscador-dni {
       display: flex;
-      flex-wrap: wrap;
       gap: 1rem;
+      flex-wrap: wrap;
       margin-bottom: 1rem;
     }
-    .filtros label {
-      display: flex;
-      flex-direction: column;
-      font-weight: 600;
-      font-size: 0.9rem;
-    }
-    .filtros input,
-    .filtros select {
+
+    .filtros select, .buscador-dni input, .mensaje-box textarea, .mensaje-box select {
       padding: 0.5rem;
-      border-radius: 4px;
-      border: 1px solid #ccc;
-      font-size: 0.9rem;
-      min-width: 150px;
+      font-size: 0.95rem;
     }
+
+    .buscador-dni input {
+      flex: 1;
+      max-width: 300px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 60px;
+    }
+
+    .vista-previa {
+      background-color: #fff3f3;
+      padding: 1rem;
+      border: 1px solid #ffcdd2;
+      border-radius: 5px;
+      margin-bottom: 1rem;
+    }
+
+    .tabla-container {
+      overflow-x: auto;
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 1rem;
+      background: white;
     }
-    table th,
-    table td {
+
+    th, td {
+      padding: 0.6rem;
       border: 1px solid #ddd;
-      padding: 0.5rem;
-      text-align: left;
-      font-size: 0.85rem;
-    }
-    table th {
-      background-color: #f1f1f1;
-    }
-    .box-previa {
-      background-color: #fff3f3;
-      border-left: 4px solid #b40000;
-      padding: 1rem;
-      margin: 1rem 0;
       font-size: 0.9rem;
     }
-    .btn {
-      padding: 0.6rem 1.2rem;
-      background-color: #b40000;
+
+    th {
+      background-color: #e53935;
       color: white;
+    }
+
+    .boton-enviar {
+      background-color: #c62828;
+      color: white;
+      padding: 0.6rem 1.2rem;
+      font-size: 1rem;
       border: none;
       border-radius: 4px;
       cursor: pointer;
-      font-size: 0.9rem;
+      margin-top: 0.5rem;
     }
-    .btn:hover {
-      background-color: #910000;
-    }
+
     .contador {
-      margin-top: 1rem;
-      font-size: 0.85rem;
-      font-weight: 600;
+      margin-top: 0.5rem;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
   <h1>Envío Masivo de SMS</h1>
-  <div class="filtros">
-    <label>
-      Asignación
-      <select id="filtro-asignacion">
-        <option value="">-- Seleccionar --</option>
-        <option value="INTERBANK">INTERBANK</option>
-        <option value="BBVA">BBVA</option>
-        <option value="SCOTIABANK">SCOTIABANK</option>
-      </select>
-    </label>
-    <label>
-      Rango Deuda
-      <select id="filtro-deuda">
-        <option value="">-- Seleccionar --</option>
-        <option value="0-500">0 - 500</option>
-        <option value="501-1000">501 - 1000</option>
-        <option value="1001-5000">1001 - 5000</option>
-      </select>
-    </label>
-    <label>
-      Acción
-      <select id="filtro-accion">
-        <option value="">-- Todas --</option>
-        <option value="CONSULTA">CONSULTA</option>
-        <option value="Aceptó">ACEPTÓ</option>
-        <option value="Oferta Enviada">OFERTA ENVIADA</option>
-        <option value="No Aceptó">NO ACEPTÓ</option>
-      </select>
-    </label>
-  </div>
 
   <div class="filtros">
-    <label>
-      Buscar por DNI
-      <input type="text" id="buscar-dni" placeholder="Ingrese DNI..." />
-    </label>
+    <select id="filtroAsignacion">
+      <option value="">Asignación</option>
+    </select>
+    <select id="filtroAccion">
+      <option value="">Acción</option>
+      <option value="CONSULTA">CONSULTA</option>
+      <option value="Aceptó">Aceptó</option>
+      <option value="No Aceptó">No Aceptó</option>
+      <option value="Oferta Enviada">Oferta Enviada</option>
+    </select>
+    <select id="filtroEstado">
+      <option value="">Estado de Pago</option>
+      <option value="Pagado">Pagado</option>
+      <option value="Pendiente">Pendiente</option>
+    </select>
   </div>
 
-  <div class="filtros">
-    <label>
-      Tipo de mensaje
-      <select id="tipo-mensaje">
-        <option value="">-- Seleccionar --</option>
-        <option value="link">Enlace de consulta</option>
-        <option value="propuesta">Propuesta aceptada</option>
-        <option value="recordatorio">Recordatorio de pago</option>
-        <option value="personalizado">Mensaje personalizado</option>
-      </select>
-    </label>
-    <label>
-      Mensaje personalizado
-      <input type="text" id="mensaje-personalizado" placeholder="Escriba el mensaje..." />
-    </label>
+  <div class="buscador-dni">
+    <input type="text" id="buscarDNI" placeholder="Buscar por DNI">
   </div>
 
-  <div class="box-previa" id="preview-mensaje">
-    Vista previa del mensaje aparecerá aquí...
+  <div class="mensaje-box">
+    <select id="tipoMensaje">
+      <option value="">Seleccionar tipo de mensaje</option>
+      <option value="link">Enlace a la página</option>
+      <option value="propuesta">Propuesta Aceptada</option>
+      <option value="recordatorio">Recordatorio de Pago</option>
+      <option value="personalizado">Mensaje Personalizado</option>
+    </select>
+    <textarea id="mensajePersonalizado" placeholder="Escribe tu mensaje personalizado..." style="display:none"></textarea>
   </div>
 
-  <button class="btn" id="btn-enviar">Enviar Mensaje</button>
-
-  <div class="contador" id="contador-envios">
-    Total de SMS enviados: 0
+  <div class="vista-previa" id="vistaPrevia">
+    <strong>Mensaje a enviar:</strong>
+    <p id="textoVista">(Selecciona un tipo de mensaje)</p>
   </div>
 
-  <table>
-    <thead>
-      <tr>
-        <th><input type="checkbox" id="seleccionar-todos" /></th>
-        <th>DNI</th>
-        <th>Nombre</th>
-        <th>Asignación</th>
-        <th>Teléfono</th>
-        <th>Deuda</th>
-        <th>Cancelación</th>
-        <th>Acción</th>
-      </tr>
-    </thead>
-    <tbody id="tabla-clientes">
-      <!-- Datos se cargarán dinámicamente -->
-    </tbody>
-  </table>
+  <button class="boton-enviar" id="btnEnviar">Enviar Mensaje</button>
+  <div class="contador" id="contadorEnvios">0 SMS enviados</div>
+
+  <div class="tabla-container">
+    <table>
+      <thead>
+        <tr>
+          <th><input type="checkbox" id="checkTodos"></th>
+          <th>DNI</th>
+          <th>Nombre</th>
+          <th>Asignación</th>
+          <th>Total S/</th>
+          <th>Cancelación</th>
+          <th>Teléfono</th>
+          <th>Estado Pago</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody id="tablaClientes">
+        <!-- Se rellenará con JS -->
+      </tbody>
+    </table>
+  </div>
 
   <script>
-    console.log("✅ JavaScript sí se está ejecutando");
-    // Aquí irá el fetch y lógica JS luego
+    const empresa = window.location.pathname.split('/')[1];
+    let clientes = [];
+    let seleccionados = new Set();
+    const tabla = document.getElementById('tablaClientes');
+
+    async function cargarClientes() {
+      const res = await fetch(`/api/clientes_masivo?empresa=${empresa}`);
+      const data = await res.json();
+      clientes = data.clientes || [];
+      renderTabla();
+      cargarOpcionesAsignacion();
+    }
+
+    function cargarOpcionesAsignacion() {
+      const select = document.getElementById('filtroAsignacion');
+      const asignaciones = [...new Set(clientes.map(c => c.asignacion))].filter(Boolean);
+      asignaciones.forEach(a => {
+        const opt = document.createElement('option');
+        opt.value = a;
+        opt.textContent = a;
+        select.appendChild(opt);
+      });
+    }
+
+    function renderTabla() {
+      tabla.innerHTML = '';
+      const filtroAsignacion = document.getElementById('filtroAsignacion').value;
+      const filtroAccion = document.getElementById('filtroAccion').value;
+      const filtroEstado = document.getElementById('filtroEstado').value;
+      const dniBuscado = document.getElementById('buscarDNI').value.trim();
+
+      const filtrados = clientes.filter(c => {
+        return (!filtroAsignacion || c.asignacion === filtroAsignacion) &&
+               (!filtroAccion || c.accion === filtroAccion) &&
+               (!filtroEstado || c.estado_pago === filtroEstado) &&
+               (!dniBuscado || c.dni === dniBuscado);
+      });
+
+      filtrados.forEach(c => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><input type="checkbox" value="${c.dni}" ${seleccionados.has(c.dni) ? 'checked' : ''}></td>
+          <td>${c.dni}</td>
+          <td>${c.nom_cliente}</td>
+          <td>${c.asignacion || ''}</td>
+          <td>${c.total_soles || ''}</td>
+          <td>${c.cancelacion || ''}</td>
+          <td>${c.num1 || ''}</td>
+          <td>${c.estado_pago || ''}</td>
+          <td>${c.accion || ''}</td>
+        `;
+        tr.querySelector('input').addEventListener('change', e => {
+          const dni = e.target.value;
+          if (e.target.checked) seleccionados.add(dni);
+          else seleccionados.delete(dni);
+        });
+        tabla.appendChild(tr);
+      });
+    }
+
+    document.getElementById('checkTodos').addEventListener('change', e => {
+      seleccionados = new Set();
+      if (e.target.checked) {
+        clientes.forEach(c => seleccionados.add(c.dni));
+      }
+      renderTabla();
+    });
+
+    document.getElementById('buscarDNI').addEventListener('input', renderTabla);
+    document.getElementById('filtroAsignacion').addEventListener('change', renderTabla);
+    document.getElementById('filtroAccion').addEventListener('change', renderTabla);
+    document.getElementById('filtroEstado').addEventListener('change', renderTabla);
+
+    document.getElementById('tipoMensaje').addEventListener('change', e => {
+      const tipo = e.target.value;
+      const vista = document.getElementById('textoVista');
+      const personalizado = document.getElementById('mensajePersonalizado');
+      personalizado.style.display = tipo === 'personalizado' ? 'block' : 'none';
+
+      vista.textContent = {
+        link: 'Ingrese a nuestra plataforma para consultar y negociar su deuda.',
+        propuesta: '{nombre}, su propuesta fue aceptada. Monto final: {Cancelación}.',
+        recordatorio: '{nombre} recuerde de hacer el pago de {Cancelación} y tenga ya su carta de No Adeudo.',
+        personalizado: personalizado.value
+      }[tipo] || '(Selecciona un tipo de mensaje)';
+    });
+
+    document.getElementById('mensajePersonalizado').addEventListener('input', e => {
+      const vista = document.getElementById('textoVista');
+      vista.textContent = e.target.value;
+    });
+
+    document.getElementById('btnEnviar').addEventListener('click', async () => {
+      const tipo = document.getElementById('tipoMensaje').value;
+      let texto = document.getElementById('textoVista').textContent;
+      let contador = 0;
+
+      for (const dni of seleccionados) {
+        const c = clientes.find(x => x.dni === dni);
+        const mensaje = texto.replace('{nombre}', c.nom_cliente).replace('{Cancelación}', c.cancelacion);
+        const res = await fetch('/api/enviar_sms', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ dni, empresa, mensaje })
+        });
+        const r = await res.json();
+        if (r.success) contador++;
+      }
+
+      document.getElementById('contadorEnvios').textContent = `${contador} SMS enviados`;
+    });
+
+    cargarClientes();
   </script>
 </body>
 </html>
